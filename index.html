@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>リボ沼からの脱出 - 借金シミュレーションゲーム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kurenaido&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --washi:#f2ecdd;
+    --washi-dark:#e7ddc4;
+    --sumi:#2a2620;
+    --sumi-soft:#5c5646;
+    --shu:#b6392b;
+    --shu-deep:#8f2a1f;
+    --kon:#1f3350;
+    --kon-deep:#152539;
+    --kin:#a9822f;
+    --numa:#6b5b36;
+    --numa-deep:#3c3320;
+    --line:#c9bd9c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(255,255,255,0.35), transparent 55%),
+      radial-gradient(ellipse at 80% 100%, rgba(0,0,0,0.05), transparent 55%),
+      var(--washi);
+    background-attachment:fixed;
+    color:var(--sumi);
+    font-family:'Zen Kurenaido', sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 60px;
+    line-height:1.75;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:0.5;
+    background-image:
+      repeating-linear-gradient(115deg, rgba(120,105,70,0.035) 0px, rgba(120,105,70,0.035) 1px, transparent 1px, transparent 3px),
+      repeating-linear-gradient(25deg, rgba(120,105,70,0.03) 0px, rgba(120,105,70,0.03) 1px, transparent 1px, transparent 4px);
+    mix-blend-mode:multiply;
+  }
+  .stage{
+    width:100%;
+    max-width:560px;
+    position:relative;
+    z-index:1;
+  }
+  h1,h2,h3{
+    font-family:'Shippori Mincho', serif;
+    margin:0;
+  }
+  .num{
+    font-family:'Shippori Mincho', serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- header / scroll frame ---------- */
+  .scroll{
+    background:linear-gradient(180deg, #faf6ea, var(--washi-dark));
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:0 2px 0 var(--line), 0 18px 40px -20px rgba(30,20,10,0.45);
+    padding:28px 24px 26px;
+    position:relative;
+  }
+  .scroll::before, .scroll::after{
+    content:"";
+    position:absolute;
+    left:10px; right:10px;
+    height:10px;
+    background:linear-gradient(180deg, rgba(31,51,80,0.9), rgba(31,51,80,0.55));
+    border-radius:3px;
+  }
+  .scroll::before{ top:-5px; }
+  .scroll::after{ bottom:-5px; }
+
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:0.3em;
+    color:var(--shu);
+    text-align:center;
+    margin-bottom:6px;
+  }
+  .title{
+    font-size:27px;
+    font-weight:800;
+    text-align:center;
+    color:var(--kon);
+    letter-spacing:0.06em;
+  }
+  .subtitle{
+    text-align:center;
+    font-size:13px;
+    color:var(--sumi-soft);
+    margin-top:10px;
+  }
+
+  /* ---------- intro ---------- */
+  .lead{
+    margin:20px 0 6px;
+    font-size:14.5px;
+  }
+  .rule-box{
+    margin-top:16px;
+    border:1px dashed var(--kin);
+    background:rgba(169,130,47,0.08);
+    border-radius:4px;
+    padding:14px 16px;
+    font-size:13px;
+    color:var(--sumi-soft);
+  }
+  .rule-box b{ color:var(--kon); }
+
+  .btn{
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    font-family:'Shippori Mincho', serif;
+    font-weight:700;
+    letter-spacing:0.05em;
+    border-radius:3px;
+    padding:14px 20px;
+    font-size:15px;
+    width:100%;
+    transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  }
+  .btn:active{ transform:translateY(1px) scale(0.99); }
+  .btn:focus-visible{ outline:3px solid var(--kin); outline-offset:2px; }
+  .btn-primary{
+    background:var(--shu);
+    color:#fdf6ea;
+    box-shadow:0 3px 0 var(--shu-deep);
+  }
+  .btn-primary:hover{ opacity:0.94; }
+  .btn-ghost{
+    background:transparent;
+    color:var(--kon);
+    border:1px solid var(--kon);
+  }
+  .btn-row{ display:flex; gap:10px; margin-top:18px; }
+  .btn-row .btn{ width:auto; flex:1; }
+
+  .start-wrap{ margin-top:24px; }
+
+  /* ---------- month path (sugoroku) ---------- */
+  .path{
+    display:flex;
+    gap:5px;
+    margin:18px 0 4px;
+  }
+  .path .dot{
+    flex:1;
+    height:6px;
+    border-radius:3px;
+    background:var(--line);
+    position:relative;
+  }
+  .path .dot.done{ background:var(--kon); }
+  .path .dot.now{
+    background:var(--shu);
+    box-shadow:0 0 0 3px rgba(182,57,43,0.18);
+  }
+  .month-label{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-top:2px;
+  }
+  .month-label .m{
+    font-size:12px;
+    color:var(--sumi-soft);
+  }
+  .month-label .mnum{
+    font-size:22px;
+    font-weight:800;
+    color:var(--kon);
+  }
+
+  /* ---------- numa gauge (debt swamp) ---------- */
+  .numa-wrap{
+    display:flex;
+    gap:16px;
+    align-items:center;
+    margin:18px 0 4px;
+    padding:16px;
+    background:rgba(31,51,80,0.04);
+    border:1px solid var(--line);
+    border-radius:5px;
+  }
+  .numa-gauge{
+    position:relative;
+    width:46px;
+    height:112px;
+    border-radius:23px;
+    background:linear-gradient(180deg, #fbf8ee, #efe6cf);
+    border:2px solid var(--kon);
+    overflow:hidden;
+    flex:none;
+  }
+  .numa-fill{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:0%;
+    background:linear-gradient(180deg, var(--numa), var(--numa-deep));
+    transition:height .6s ease;
+  }
+  .numa-fill::before{
+    content:"";
+    position:absolute;
+    top:-3px; left:0; right:0; height:6px;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.35), transparent 70%);
+  }
+  .numa-mark{
+    position:absolute;
+    left:0; right:0;
+    height:1px;
+    background:rgba(42,38,32,0.18);
+  }
+  .numa-text{ flex:1; }
+  .numa-text .label{
+    font-size:12px;
+    color:var(--sumi-soft);
+    letter-spacing:0.05em;
+  }
+  .numa-text .amount{
+    font-size:24px;
+    font-weight:800;
+    color:var(--shu-deep);
+    margin-top:2px;
+  }
+  .numa-text .limit{
+    font-size:11.5px;
+    color:var(--sumi-soft);
+    margin-top:4px;
+  }
+  .numa-warn{
+    margin-top:8px;
+    font-size:12px;
+    color:var(--shu-deep);
+    font-weight:700;
+  }
+
+  /* ---------- event card ---------- */
+  .event-card{
+    margin-top:18px;
+    border:1px solid var(--shu);
+    background:linear-gradient(180deg, rgba(182,57,43,0.06), rgba(182,57,43,0.02));
+    border-radius:5px;
+    padding:18px;
+    text-align:center;
+  }
+  .event-card .flag{
+    display:inline-block;
+    font-size:11px;
+    letter-spacing:0.2em;
+    background:var(--shu);
+    color:#fdf6ea;
+    padding:3px 10px;
+    border-radius:20px;
+    margin-bottom:10px;
+  }
+  .event-card .item{
+    font-family:'Shippori Mincho', serif;
+    font-size:19px;
+    font-weight:700;
+    color:var(--kon);
+  }
+  .event-card .price{
+    font-size:22px;
+    font-weight:800;
+    color:var(--shu-deep);
+    margin-top:4px;
+  }
+
+  /* ---------- log ---------- */
+  .log{
+    margin-top:18px;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  .log-line{
+    display:flex;
+    justify-content:space-between;
+    font-size:13.5px;
+    padding:5px 0;
+    border-bottom:1px dotted rgba(42,38,32,0.14);
+  }
+  .log-line span:first-child{ color:var(--sumi-soft); }
+  .log-line span:last-child{ font-weight:700; }
+  .log-line.interest span:last-child{ color:var(--shu-deep); }
+  .log-line.principal span:last-child{ color:var(--kon); }
+  .log-alert{
+    margin-top:10px;
+    font-size:12.5px;
+    color:var(--shu-deep);
+    background:rgba(182,57,43,0.08);
+    border:1px solid var(--shu);
+    border-radius:4px;
+    padding:8px 10px;
+  }
+  .log-peace{
+    margin-top:10px;
+    font-size:13px;
+    color:var(--sumi-soft);
+    text-align:center;
+  }
+
+  /* ---------- result ---------- */
+  .result-badge{
+    text-align:center;
+    font-family:'Shippori Mincho', serif;
+    font-size:22px;
+    font-weight:800;
+    padding:16px 10px;
+    border-radius:5px;
+    margin:16px 0;
+  }
+  .result-badge.bad{ background:rgba(182,57,43,0.1); color:var(--shu-deep); border:1px solid var(--shu); }
+  .result-badge.ok{ background:rgba(31,51,80,0.08); color:var(--kon); border:1px solid var(--kon); }
+  .stat-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:14px;
+  }
+  .stat{
+    background:var(--washi);
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:12px 14px;
+  }
+  .stat .k{ font-size:11.5px; color:var(--sumi-soft); }
+  .stat .v{ font-size:19px; font-weight:800; color:var(--kon); margin-top:3px; }
+  .stat.warn .v{ color:var(--shu-deep); }
+  .moral{
+    margin-top:16px;
+    font-size:13.5px;
+    background:rgba(169,130,47,0.09);
+    border:1px dashed var(--kin);
+    border-radius:4px;
+    padding:14px 16px;
+    color:var(--sumi-soft);
+  }
+  .moral b{ color:var(--kon); }
+
+  .footer-note{
+    text-align:center;
+    font-size:11px;
+    color:var(--sumi-soft);
+    margin-top:18px;
+    opacity:0.8;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .numa-fill{ transition:none; }
+    .btn{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="scroll" id="scroll">
+
+    <!-- ===== INTRO ===== -->
+    <div id="screen-intro">
+      <div class="eyebrow">SIMULATION GAME</div>
+      <h1 class="title">リボ沼からの脱出</h1>
+      <div class="subtitle">〜 月々5,000円「だけ」の代償 〜</div>
+
+      <p class="lead">あなたは社会人1年目。はじめてのクレジットカードを手に入れました。</p>
+      <p class="lead">「月々の返済は一律5,000円でOK！」というリボルビング払い（年利15%）を使ってみることに…。</p>
+
+      <div class="rule-box">
+        <b>ルール</b><br>
+        ・1年間（12か月）のシミュレーションです。<br>
+        ・3か月ごとに「欲しいもの」が現れます。リボ払いで買うか、我慢するか選べます。<br>
+        ・毎月、返済額5,000円のうち一部が利息として消えていきます。<br>
+        ・借金が上限50万円に達すると、その時点でゲームオーバーです。
+      </div>
+
+      <div class="start-wrap">
+        <button class="btn btn-primary" id="btn-start">カードを手に入れる</button>
+      </div>
+    </div>
+
+    <!-- ===== GAME ===== -->
+    <div id="screen-game" style="display:none;">
+      <div class="eyebrow">リボ沼からの脱出</div>
+      <div class="path" id="path"></div>
+      <div class="month-label">
+        <span class="mnum num" id="month-num">1</span>
+        <span class="m">か月目 / 12か月</span>
+      </div>
+
+      <div class="numa-wrap">
+        <div class="numa-gauge">
+          <div class="numa-fill" id="numa-fill"></div>
+        </div>
+        <div class="numa-text">
+          <div class="label">現在のリボ残高</div>
+          <div class="amount num" id="balance-amount">0円</div>
+          <div class="limit">限度額 <span id="limit-amount">500,000</span>円</div>
+          <div class="numa-warn" id="numa-warn" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div id="event-area"></div>
+      <div id="log-area" class="log" style="display:none;"></div>
+
+      <div id="next-area" style="display:none;">
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-next">次の月へ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RESULT ===== -->
+    <div id="screen-result" style="display:none;"></div>
+
+    <div class="footer-note">このゲームはフィクションのシミュレーションです。実際のリボ払いの条件はカード会社により異なります。</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const yen = n => n.toLocaleString('ja-JP') + '円';
+
+  const EVENTS = [
+    { name: '最新スマートフォン', price: 120000 },
+    { name: '友人と行くハワイ旅行', price: 200000 },
+    { name: 'ブランドの服・バッグ', price: 80000 },
+    { name: '推しのライブツアー全通', price: 60000 },
+    { name: '最新のゲームPC', price: 150000 },
+  ];
+  const EVENT_MONTHS = [1,4,7,10];
+  const LIMIT = 500000;
+  const MONTHLY_PAYMENT = 5000;
+  const ANNUAL_RATE = 0.15;
+
+  let state = null;
+
+  function initState(){
+    return {
+      month: 1,
+      balance: 0,
+      totalPaid: 0,
+      totalInterest: 0,
+      eventIndex: 0,
+      awaitingChoice: false,
+    };
+  }
+
+  const screenIntro = document.getElementById('screen-intro');
+  const screenGame = document.getElementById('screen-game');
+  const screenResult = document.getElementById('screen-result');
+  const pathEl = document.getElementById('path');
+  const monthNumEl = document.getElementById('month-num');
+  const numaFill = document.getElementById('numa-fill');
+  const balanceAmount = document.getElementById('balance-amount');
+  const limitAmount = document.getElementById('limit-amount');
+  const numaWarn = document.getElementById('numa-warn');
+  const eventArea = document.getElementById('event-area');
+  const logArea = document.getElementById('log-area');
+  const nextArea = document.getElementById('next-area');
+  const btnNext = document.getElementById('btn-next');
+  const btnStart = document.getElementById('btn-start');
+
+  limitAmount.textContent = LIMIT.toLocaleString('ja-JP');
+
+  function renderPath(){
+    pathEl.innerHTML = '';
+    for(let i=1;i<=12;i++){
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < state.month ? ' done' : (i === state.month ? ' now' : ''));
+      pathEl.appendChild(d);
+    }
+  }
+
+  function renderGauge(){
+    const ratio = Math.min(state.balance / LIMIT, 1);
+    numaFill.style.height = (ratio*100).toFixed(1) + '%';
+    balanceAmount.textContent = yen(state.balance);
+    if(ratio >= 0.8){
+      numaWarn.style.display = 'block';
+      numaWarn.textContent = '⚠ 限度額まであとわずか…！';
+    } else {
+      numaWarn.style.display = 'none';
+    }
+  }
+
+  function renderHeader(){
+    monthNumEl.textContent = state.month;
+    renderPath();
+    renderGauge();
+  }
+
+  function showEvent(item){
+    eventArea.innerHTML = '';
+    logArea.style.display = 'none';
+    nextArea.style.display = 'none';
+
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.innerHTML =
+      '<div class="flag">誘惑イベント</div>' +
+      '<div class="item">『' + item.name + '』が欲しい！</div>' +
+      '<div class="price num">' + yen(item.price) + '</div>' +
+      '<div class="btn-row">' +
+        '<button class="btn btn-primary" id="btn-buy">リボ払いで買う</button>' +
+        '<button class="btn btn-ghost" id="btn-pass">我慢する</button>' +
+      '</div>';
+    eventArea.appendChild(card);
+
+    document.getElementById('btn-buy').addEventListener('click', () => {
+      state.balance += item.price;
+      eventArea.innerHTML = '<div class="event-card"><div class="flag">購入しました</div>' +
+        '<div class="item">『' + item.name + '』をリボ払いで購入</div>' +
+        '<div class="price num">残高 ' + yen(state.balance) + '</div></div>';
+      renderGauge();
+      processMonth();
+    });
+    document.getElementById('btn-pass').addEventListener('click', () => {
+      eventArea.innerHTML = '<div class="event-card"><div class="flag">我慢しました</div>' +
+        '<div class="item">グッと堪えて見送りました</div></div>';
+      processMonth();
+    });
+  }
+
+  function processMonth(){
+    logArea.style.display = 'block';
+    logArea.innerHTML = '';
+
+    if(state.balance > 0){
+      const interest = Math.floor(state.balance * (ANNUAL_RATE / 12));
+      let principalPaid = MONTHLY_PAYMENT - interest;
+      const overInterest = principalPaid <= 0;
+      if(overInterest) principalPaid = 0;
+
+      state.balance -= principalPaid;
+      if(state.balance < 0) state.balance = 0;
+      state.totalPaid += MONTHLY_PAYMENT;
+      state.totalInterest += interest;
+
+      const lines = [
+        ['引き落とし額', yen(MONTHLY_PAYMENT), ''],
+        ['内訳：利息（ドブに消えた分）', yen(interest), 'interest'],
+        ['内訳：元金の返済', yen(principalPaid), 'principal'],
+        ['残りのリボ残高', yen(state.balance), ''],
+      ];
+      lines.forEach(([k,v,cls]) => {
+        const row = document.createElement('div');
+        row.className = 'log-line' + (cls ? ' '+cls : '');
+        row.innerHTML = '<span>'+k+'</span><span class="num">'+v+'</span>';
+        logArea.appendChild(row);
+      });
+
+      if(overInterest){
+        const alert = document.createElement('div');
+        alert.className = 'log-alert';
+        alert.textContent = '【警報】返済額より利息の方が高いため、返済しても残高が減っていません！';
+        logArea.appendChild(alert);
+      }
+      renderGauge();
+    } else {
+      const peace = document.createElement('div');
+      peace.className = 'log-peace';
+      peace.textContent = '現在、リボ払いの残高はありません。平和です。';
+      logArea.appendChild(peace);
+    }
+
+    if(state.balance >= LIMIT){
+      renderGameOver();
+      return;
+    }
+
+    nextArea.style.display = 'block';
+  }
+
+  function advanceMonth(){
+    if(state.month >= 12){
+      renderResult();
+      return;
+    }
+    state.month += 1;
+    renderHeader();
+    eventArea.innerHTML = '';
+    logArea.style.display = 'none';
+    nextArea.style.display = 'none';
+
+    if(EVENT_MONTHS.includes(state.month) && state.eventIndex < EVENTS.length){
+      const item = EVENTS[state.eventIndex];
+      state.eventIndex += 1;
+      showEvent(item);
+    } else {
+      processMonth();
+    }
+  }
+
+  function renderGameOver(){
+    screenGame.style.display = 'none';
+    screenResult.style.display = 'block';
+    screenResult.innerHTML =
+      '<div class="eyebrow">GAME OVER</div>' +
+      '<h1 class="title">☠ 自己破産 ☠</h1>' +
+      '<div class="result-badge bad">限度額（' + LIMIT.toLocaleString('ja-JP') + '円）を突破しました</div>' +
+      '<p class="lead">' + state.month + 'か月目で、リボ残高が限度額を超えてしまいました。毎月5,000円という「小さな安心」の裏で、利息が借金を膨らませ続けていたのです。</p>' +
+      '<div class="stat-grid">' +
+        '<div class="stat warn"><div class="k">払った合計金額</div><div class="v num">' + yen(state.totalPaid) + '</div></div>' +
+        '<div class="stat warn"><div class="k">うち利息の合計</div><div class="v num">' + yen(state.totalInterest) + '</div></div>' +
+      '</div>' +
+      '<div class="moral"><b>教訓：</b>「月々◯円だから大丈夫」という言葉には要注意。返済額が低いほど、利息が元金を減らすスピードも遅くなります。</div>' +
+      '<div class="start-wrap"><button class="btn btn-ghost" id="btn-retry">もう一度挑戦する</button></div>';
+    document.getElementById('btn-retry').addEventListener('click', startGame);
+  }
+
+  function renderResult(){
+    screenGame.style.display = 'none';
+    screenResult.style.display = 'block';
+
+    const cleared = state.balance <= 0;
+    const monthsLeft = state.balance > 0 ? Math.ceil(state.balance / 3000) : 0;
+
+    let body =
+      '<div class="eyebrow">1年後の最終結果</div>' +
+      '<h1 class="title">' + (cleared ? '完済…できました' : 'まだ沼の中です') + '</h1>' +
+      '<div class="result-badge ' + (cleared ? 'ok' : 'bad') + '">' +
+        (cleared ? '借金ゼロで1年を終えました' : '残りの借金 ' + yen(state.balance)) +
+      '</div>' +
+      '<div class="stat-grid">' +
+        '<div class="stat"><div class="k">払った合計金額</div><div class="v num">' + yen(state.totalPaid) + '</div></div>' +
+        '<div class="stat warn"><div class="k">うち利息の合計</div><div class="v num">' + yen(state.totalInterest) + '</div></div>' +
+      '</div>';
+
+    if(!cleared){
+      body += '<div class="moral"><b>結論：</b>このペースだと、完済まであと約<b>' + monthsLeft + 'か月</b>かかる計算です。「毎月5,000円だから安心」は大きな誤解。利息の沼から抜け出せなくなっています。</div>';
+    } else {
+      body += '<div class="moral">なんとか完済できましたが、利息分（' + yen(state.totalInterest) + '）は完全に無駄な出費でした。リボ払いは「買った金額以上」を払う仕組みだと覚えておきましょう。</div>';
+    }
+
+    body += '<div class="start-wrap"><button class="btn btn-ghost" id="btn-retry">もう一度挑戦する</button></div>';
+    screenResult.innerHTML = body;
+    document.getElementById('btn-retry').addEventListener('click', startGame);
+  }
+
+  function startGame(){
+    state = initState();
+    screenIntro.style.display = 'none';
+    screenResult.style.display = 'none';
+    screenGame.style.display = 'block';
+    renderHeader();
+    eventArea.innerHTML = '';
+    logArea.style.display = 'none';
+    nextArea.style.display = 'none';
+
+    if(EVENT_MONTHS.includes(state.month) && state.eventIndex < EVENTS.length){
+      const item = EVENTS[state.eventIndex];
+      state.eventIndex += 1;
+      showEvent(item);
+    } else {
+      processMonth();
+    }
+  }
+
+  btnStart.addEventListener('click', startGame);
+  btnNext.addEventListener('click', advanceMonth);
+})();
+</script>
+</body>
+</html>
